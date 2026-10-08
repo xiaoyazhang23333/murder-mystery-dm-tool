@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}} - DM 开本工具</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        serif: ['"Noto Serif SC"', 'serif'],
+        sans: ['"Noto Sans SC"', 'sans-serif'],
+      },
+      colors: {
+        border: '#e2e8f0',
+        input: '#e2e8f0',
+        ring: '#94a3b8',
+        background: '#f8fafc',
+        foreground: '#0f172a',
+        primary: { DEFAULT: '#0f172a', foreground: '#f8fafc' },
+        secondary: { DEFAULT: '#f1f5f9', foreground: '#0f172a' },
+        destructive: { DEFAULT: '#ef4444', foreground: '#f8fafc' },
+        muted: { DEFAULT: '#f1f5f9', foreground: '#64748b' },
+        accent: { DEFAULT: '#f1f5f9', foreground: '#0f172a' },
+        popover: { DEFAULT: '#ffffff', foreground: '#0f172a' },
+        card: { DEFAULT: '#ffffff', foreground: '#0f172a' },
+      },
+      borderRadius: { lg: '0.5rem', md: '0.375rem', sm: '0.25rem' },
+    }
+  }
+}
+</script>
+<style>
+body { font-family: 'Noto Sans SC', sans-serif; background: #f8fafc; }
+.font-serif { font-family: 'Noto Serif SC', serif; }
+.shadcn-card { background: white; border: 1px solid #e2e8f0; border-radius: 0.5rem; box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.05); }
+.shadcn-btn { display: inline-flex; align-items: center; justify-content: center; border-radius: 0.375rem; font-weight: 500; font-size: 0.875rem; padding: 0.5rem 1rem; transition: all 0.15s; cursor: pointer; border: 1px solid transparent; gap: 0.5rem; }
+.shadcn-btn-primary { background: #0f172a; color: #f8fafc; }
+.shadcn-btn-primary:hover { background: #1e293b; }
+.shadcn-btn-secondary { background: #f1f5f9; color: #0f172a; border-color: #e2e8f0; }
+.shadcn-btn-secondary:hover { background: #e2e8f0; }
+.shadcn-btn-outline { background: transparent; color: #0f172a; border-color: #e2e8f0; }
+.shadcn-btn-outline:hover { background: #f8fafc; }
+.shadcn-btn-ghost { background: transparent; color: #0f172a; }
+.shadcn-btn-ghost:hover { background: #f1f5f9; }
+.shadcn-input { border: 1px solid #e2e8f0; border-radius: 0.375rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; background: white; outline: none; width: 100%; }
+.shadcn-input:focus { border-color: #94a3b8; box-shadow: 0 0 0 2px #e2e8f0; }
+.sidebar-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 0.375rem; color: #64748b; font-size: 0.875rem; cursor: pointer; transition: all 0.15s; }
+.sidebar-link:hover { background: #f1f5f9; color: #0f172a; }
+.sidebar-link.active { background: #f1f5f9; color: #0f172a; font-weight: 500; }
+.clue-card { aspect-ratio: 3/4; object-fit: cover; border-radius: 0.375rem; border: 1px solid #e2e8f0; cursor: pointer; transition: transform 0.15s; }
+.clue-card:hover { transform: scale(1.02); }
+.timeline-item { position: relative; padding-left: 2rem; }
+.timeline-item::before { content: ''; position: absolute; left: 0.4rem; top: 1.8rem; bottom: -0.5rem; width: 2px; background: #e2e8f0; }
+.timeline-item:last-child::before { display: none; }
+.timeline-dot { position: absolute; left: 0; top: 0.25rem; width: 1rem; height: 1rem; border-radius: 50%; background: #e2e8f0; border: 2px solid white; box-shadow: 0 0 0 2px #e2e8f0; }
+.timeline-item.active .timeline-dot { background: #0f172a; box-shadow: 0 0 0 2px #0f172a; }
+.timeline-item.completed .timeline-dot { background: #10b981; box-shadow: 0 0 0 2px #10b981; }
+.hidden { display: none !important; }
+.fade-in { animation: fadeIn 0.3s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 50; backdrop-filter: blur(2px); }
+.modal-content { background: white; border-radius: 0.5rem; box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); max-width: 90vw; max-height: 90vh; overflow: auto; }
+.password-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.clue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; }
+@media (max-width: 640px) { .clue-grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); } }
+</style>
+</head>
+<body class="min-h-screen flex text-slate-900">
+
+<!-- Sidebar -->
+<aside class="w-64 bg-white border-r border-slate-200 flex flex-col fixed h-full z-10" id="sidebar">
+  <div class="p-4 border-b border-slate-200">
+    <h1 class="font-serif text-lg font-bold text-slate-900" id="sidebarTitle">{{TITLE}}</h1>
+    <p class="text-xs text-slate-500 mt-0.5">DM 开本工具</p>
+  </div>
+  <nav class="flex-1 overflow-y-auto p-2 space-y-0.5" id="sidebarNav">
+    <div class="sidebar-link active" data-page="home" onclick="showPage('home')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>首页流程</span>
+    </div>
+    <div class="sidebar-link" data-page="script" onclick="showPage('script')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>分发剧本</span>
+    </div>
+    <div class="sidebar-link" data-page="clues" onclick="showPage('clues')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <span>线索搜证</span>
+    </div>
+    <div class="sidebar-link" data-page="events" onclick="showPage('events')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      <span>突发事件</span>
+    </div>
+    <div class="sidebar-link" data-page="reference" onclick="showPage('reference')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span>资料参考</span>
+    </div>
+    <div class="sidebar-link" data-page="review" onclick="showPage('review')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span>真相复盘</span>
+    </div>
+    <div class="sidebar-link" data-page="materials" onclick="showPage('materials')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      <span>素材总览</span>
+      <span class="ml-auto text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">🔒</span>
+    </div>
+  </nav>
+  <div class="p-3 border-t border-slate-200">
+    <div class="shadcn-card p-3">
+      <div class="text-xs text-slate-500 mb-1">当前阶段</div>
+      <div class="text-sm font-medium" id="currentStage">准备阶段</div>
+      <div class="flex gap-2 mt-2">
+        <button class="shadcn-btn shadcn-btn-secondary text-xs py-1 px-2 flex-1" onclick="prevStage()">上一步</button>
+        <button class="shadcn-btn shadcn-btn-primary text-xs py-1 px-2 flex-1" onclick="nextStage()">下一步</button>
+      </div>
+      <div class="mt-2 pt-2 border-t border-slate-100">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-500">讨论计时</span>
+          <span class="text-sm font-mono font-bold" id="timerDisplay">00:00</span>
+        </div>
+        <div class="flex gap-1 mt-1">
+          <button class="shadcn-btn shadcn-btn-outline text-xs py-0.5 px-1.5 flex-1" onclick="startTimer(30)">30分</button>
+          <button class="shadcn-btn shadcn-btn-outline text-xs py-0.5 px-1.5 flex-1" onclick="startTimer(15)">15分</button>
+          <button class="shadcn-btn shadcn-btn-secondary text-xs py-0.5 px-1.5" onclick="stopTimer()">⏹</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Main Content -->
+<main class="flex-1 ml-64 min-h-screen overflow-auto">
+  <div class="max-w-5xl mx-auto p-6">
+
+    <!-- ===== HOME PAGE ===== -->
+    <div id="page-home" class="fade-in">
+      <div class="mb-6">
+        <h2 class="font-serif text-2xl font-bold text-slate-900">游戏流程</h2>
+        <p class="text-slate-500 text-sm mt-1">按照以下步骤引导玩家完成游戏，点击各步骤可查看详情</p>
+      </div>
+      <div class="space-y-0" id="timeline"></div>
+    </div>
+
+    <!-- ===== SCRIPT DISTRIBUTION PAGE ===== -->
+    <div id="page-script" class="hidden fade-in">
+      <div class="mb-6">
+        <h2 class="font-serif text-2xl font-bold text-slate-900">分发剧本</h2>
+        <p class="text-slate-500 text-sm mt-1">选择对应人物，下载剧本PDF文件分发给玩家</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="characterCards"></div>
+      <div class="shadcn-card p-4 mt-6">
+        <h4 class="font-medium text-sm mb-2">📋 DM 提示</h4>
+        <ul class="text-sm text-slate-600 space-y-1 list-disc list-inside" id="dmTipsScript"></ul>
+      </div>
+    </div>
+
+    <!-- ===== CLUES PAGE ===== -->
+    <div id="page-clues" class="hidden fade-in">
+      <div class="mb-6">
+        <h2 class="font-serif text-2xl font-bold text-slate-900">线索搜证</h2>
+        <p class="text-slate-500 text-sm mt-1">管理各轮次的线索发放与展示</p>
+      </div>
+      <div class="flex gap-2 mb-6" id="roundButtons"></div>
+      <div class="shadcn-card p-4 mb-6" id="clueRoundInfo"></div>
+      <div class="mb-4">
+        <label class="text-sm font-medium text-slate-700 mb-2 block">选择区域</label>
+        <div class="flex flex-wrap gap-2" id="areaFilters"></div>
+      </div>
+      <div class="shadcn-card p-3 mb-4 flex items-center justify-between">
+        <span class="text-sm text-slate-600">已发放线索：<span class="font-bold text-slate-900" id="clueCounter">0</span> 条</span>
+        <button class="shadcn-btn shadcn-btn-outline text-xs" onclick="resetClues()">重置</button>
+      </div>
+      <div class="clue-grid" id="cluesGrid"></div>
+    </div>
+
+    <!-- ===== EVENTS PAGE ===== -->
+    <div id="page-events" class="hidden fade-in">
+      <div class="mb-6">
+        <h2 class="font-serif text-2xl font-bold text-slate-900">突发事件</h2>
+        <p class="text-slate-500 text-sm mt-1">游戏中的特殊事件与机制</p>
+      </div>
+      <div id="eventsContent"></div>
+    </div>
+
+    <!-- ===== REFERENCE PAGE ===== -->
+    <div id="page-reference" class="hidden fade-in">
+      <div class="mb-6">
+        <h2 class="font-serif text-2xl font-bold text-slate-900">资料参考</h2>
+        <p class="text-slate-500 text-sm mt-1">人物简介、地点说明与游戏规则（玩家可见信息）</p>
+      </div>
+      <div class="space-y-4" id="referenceContent"></div>
+    </div>
+
+    <!-- ===== REVIEW PAGE ===== -->
+    <div id="page-review" class="hidden fade-in">
+      <div class="mb-6">
+        <h2 class="font-serif text-2xl font-bold text-slate-900">真相复盘</h2>
+        <p class="text-slate-500 text-sm mt-1">仅供DM参考，请勿提前向玩家透露</p>
+      </div>
+      <div id="reviewContent"></div>
+    </div>
+
+    <!-- ===== MATERIALS PAGE ===== -->
+    <div id="page-materials" class="hidden fade-in">
+      <div class="mb-6">
+        <h2 class="font-serif text-2xl font-bold text-slate-900">素材总览</h2>
+        <p class="text-slate-500 text-sm mt-1">预览或下载所有游戏素材</p>
+      </div>
+      <div id="materialsContent"></div>
+    </div>
+
+  </div>
+</main>
+
+<!-- Clue Modal -->
+<div id="clueModal" class="modal-overlay hidden" onclick="if(event.target===this)closeClueModal()">
+  <div class="modal-content p-4 max-w-lg w-full mx-4">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-medium" id="clueModalTitle">线索</h3>
+      <button class="shadcn-btn shadcn-btn-ghost p-1" onclick="closeClueModal()">✕</button>
+    </div>
+    <img id="clueModalImg" src="" alt="线索" class="w-full rounded-lg border border-slate-200">
+    <div class="flex gap-2 mt-3">
+      <button class="shadcn-btn shadcn-btn-secondary text-sm flex-1" onclick="markClueGiven()">标记为已发放</button>
+      <a id="clueModalDownload" href="" download class="shadcn-btn shadcn-btn-primary text-sm flex-1 text-center">下载</a>
+    </div>
+  </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="modal-overlay hidden" onclick="if(event.target===this)closeImageModal()">
+  <div class="modal-content p-2 max-w-4xl w-full mx-4">
+    <div class="flex justify-end mb-2">
+      <button class="shadcn-btn shadcn-btn-ghost p-1" onclick="closeImageModal()">✕</button>
+    </div>
+    <img id="imageModalImg" src="" alt="" class="w-full rounded-lg">
+  </div>
+</div>
+
+<!-- Password Modal -->
+<div id="passwordModal" class="password-overlay hidden">
+  <div class="shadcn-card p-6 w-full max-w-sm mx-4">
+    <div class="text-center mb-4">
+      <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-3"><span class="text-xl">🔒</span></div>
+      <h3 class="font-medium text-lg">需要验证</h3>
+      <p class="text-sm text-slate-500 mt-1">请输入管理员密码查看素材总览</p>
+    </div>
+    <input type="password" id="passwordInput" class="shadcn-input mb-3" placeholder="输入密码..." onkeypress="if(event.key==='Enter')checkPassword()">
+    <button class="shadcn-btn shadcn-btn-primary w-full" onclick="checkPassword()">确认</button>
+    <p class="text-xs text-red-500 mt-2 text-center hidden" id="passwordError">密码错误</p>
+  </div>
+</div>
+
+<script>
+// ===== GAME DATA - INJECTED BY SCRIPT =====
+const GAME_DATA = /* GAME_DATA_PLACEHOLDER */;
+
+// ===== STATE =====
+let currentPage = 'home';
+let currentStage = 0;
+let currentClueRound = 1;
+let currentClueArea = 'all';
+let givenClues = new Set();
+let materialsUnlocked = false;
+let timerInterval = null;
+let timerSeconds = 0;
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  document.title = GAME_DATA.title + ' - DM 开本工具';
+  document.getElementById('sidebarTitle').textContent = GAME_DATA.title;
+  
+  renderTimeline();
+  renderCharacters();
+  renderCluesPage();
+  renderEvents();
+  renderReference();
+  renderReview();
+  renderMaterials();
+  
+  updateStageDisplay();
+});
+
+// ===== RENDER FUNCTIONS =====
+function renderTimeline() {
+  const container = document.getElementById('timeline');
+  container.innerHTML = GAME_DATA.flowStages.map((stage, i) => `
+    <div class="timeline-item pb-6" data-stage="${i}">
+      <div class="timeline-dot"></div>
+      <div class="shadcn-card p-4 cursor-pointer hover:shadow-md transition-shadow" onclick="showFlowDetail(${i})">
+        <div class="flex items-center justify-between mb-1">
+          <h3 class="font-medium text-slate-900">${stage.title}</h3>
+          <span class="shadcn-badge shadcn-badge-default">${stage.badge}</span>
+        </div>
+        <p class="text-sm text-slate-500">${stage.desc}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderCharacters() {
+  const container = document.getElementById('characterCards');
+  container.innerHTML = GAME_DATA.characters.map(c => `
+    <div class="shadcn-card p-5">
+      <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3"><span class="text-lg">🎭</span></div>
+      <h3 class="font-serif text-lg font-semibold mb-1">${c.name}</h3>
+      <p class="text-sm text-slate-500 mb-4">${c.role}</p>
+      <a href="${c.pdf}" download class="shadcn-btn shadcn-btn-primary w-full text-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下载剧本
+      </a>
+    </div>
+  `).join('');
+  
+  const tips = document.getElementById('dmTipsScript');
+  tips.innerHTML = GAME_DATA.dmTips.script.map(t => `<li>${t}</li>`).join('');
+}
+
+function renderCluesPage() {
+  const roundBtns = document.getElementById('roundButtons');
+  const rounds = Object.keys(GAME_DATA.roundAreas).map(Number).sort((a,b)=>a-b);
+  roundBtns.innerHTML = rounds.map(r => 
+    `<button class="shadcn-btn ${r===1?'shadcn-btn-primary':'shadcn-btn-secondary'}" onclick="setClueRound(${r})">第${['一','二','三','四','五'][r-1]||r}轮搜证</button>`
+  ).join('');
+  
+  setClueRound(1);
+}
+
+function renderEvents() {
+  const container = document.getElementById('eventsContent');
+  if (!GAME_DATA.events || GAME_DATA.events.length === 0) {
+    container.innerHTML = '<div class="shadcn-card p-5 text-sm text-slate-500">暂无突发事件配置</div>';
+    return;
+  }
+  container.innerHTML = GAME_DATA.events.map(e => `
+    <div class="shadcn-card p-6 mb-6">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-2xl">${e.icon||'📌'}</span>
+        <div><h3 class="font-serif text-lg font-semibold">${e.title}</h3><p class="text-sm text-slate-500">${e.subtitle||''}</p></div>
+      </div>
+      <div class="bg-slate-50 rounded-lg p-4 border border-slate-200 text-sm text-slate-600">${e.content}</div>
+    </div>
+  `).join('');
+}
+
+function renderReference() {
+  const container = document.getElementById('referenceContent');
+  let html = '';
+  
+  if (GAME_DATA.reference.characters && GAME_DATA.reference.characters.length > 0) {
+    html += `<div class="shadcn-card p-5"><h3 class="font-serif text-lg font-semibold mb-3">👤 人物简介</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${GAME_DATA.reference.characters.map(c => `
+          <div class="border border-slate-200 rounded-lg p-3">
+            <div class="font-medium text-sm">${c.name}</div>
+            <div class="text-xs text-slate-500 mt-1">${c.desc}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+  
+  if (GAME_DATA.reference.locations && GAME_DATA.reference.locations.length > 0) {
+    html += `<div class="shadcn-card p-5"><h3 class="font-serif text-lg font-semibold mb-3">📍 地点说明</h3>
+      <div class="space-y-2 text-sm text-slate-600">
+        ${GAME_DATA.reference.locations.map(l => `<p><strong class="text-slate-900">${l.name}：</strong>${l.desc}</p>`).join('')}
+      </div>
+    </div>`;
+  }
+  
+  if (GAME_DATA.reference.rules && GAME_DATA.reference.rules.length > 0) {
+    html += `<div class="shadcn-card p-5"><h3 class="font-serif text-lg font-semibold mb-3">📋 游戏规则</h3>
+      <div class="space-y-2 text-sm text-slate-600">
+        ${GAME_DATA.reference.rules.map(r => `<p>• ${r}</p>`).join('')}
+      </div>
+    </div>`;
+  }
+  
+  container.innerHTML = html || '<div class="shadcn-card p-5 text-sm text-slate-500">暂无资料配置</div>';
+}
+
+function renderReview() {
+  const container = document.getElementById('reviewContent');
+  let html = `<div class="shadcn-card p-5 border-l-4 border-l-red-500">
+    <h3 class="font-serif text-lg font-semibold text-red-700 mb-2">⚠️ DM 专用区域</h3>
+    <p class="text-sm text-slate-600">以下内容包含严重剧透，仅在游戏结束后或必要时向玩家披露。</p>
+  </div>`;
+  
+  if (GAME_DATA.review.cases && GAME_DATA.review.cases.length > 0) {
+    html += `<div class="shadcn-card p-5 mt-4"><h3 class="font-serif text-lg font-semibold mb-3">🕵️ 案件真相</h3>
+      <div class="space-y-3 text-sm text-slate-600">
+        ${GAME_DATA.review.cases.map(c => `
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200">
+            <p class="font-medium text-slate-900 mb-1">${c.title}</p>
+            <p>${c.content}</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+  
+  if (GAME_DATA.review.endings && GAME_DATA.review.endings.length > 0) {
+    html += `<div class="shadcn-card p-5 mt-4"><h3 class="font-serif text-lg font-semibold mb-3">🔚 结局分支</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        ${GAME_DATA.review.endings.map(e => `
+          <div class="border border-slate-200 rounded-lg p-4">
+            <div class="font-medium text-sm mb-1">${e.title}</div>
+            <div class="text-xs text-slate-500">${e.content}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+  
+  if (GAME_DATA.review.notes) {
+    html += `<div class="shadcn-card p-5 mt-4"><h3 class="font-serif text-lg font-semibold mb-3">🎯 关键信息</h3>
+      <div class="space-y-2 text-sm text-slate-600">${GAME_DATA.review.notes}</div>
+    </div>`;
+  }
+  
+  container.innerHTML = html;
+}
+
+function renderMaterials() {
+  const container = document.getElementById('materialsContent');
+  let html = '';
+  
+  // Scripts
+  if (GAME_DATA.characters.length > 0) {
+    html += `<div class="shadcn-card p-5 mb-6"><h3 class="font-medium text-sm mb-3">📁 剧本文件</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        ${GAME_DATA.characters.map(c => `
+          <a href="${c.pdf}" download class="flex items-center gap-2 p-3 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm">
+            <span>📄</span><span>${c.name}.pdf</span>
+          </a>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+  
+  // Map
+  if (GAME_DATA.mapPath) {
+    html += `<div class="shadcn-card p-5 mb-6"><h3 class="font-medium text-sm mb-3">🗺️ 地图</h3>
+      <div class="border border-slate-200 rounded-lg overflow-hidden max-w-md">
+        <img src="${GAME_DATA.mapPath}" alt="地图" class="w-full" onclick="showImageModal(this.src)">
+      </div>
+    </div>`;
+  }
+  
+  // Manual
+  if (GAME_DATA.manualPath) {
+    html += `<div class="shadcn-card p-5 mb-6"><h3 class="font-medium text-sm mb-3">📖 组织者手册</h3>
+      <a href="${GAME_DATA.manualPath}" download class="shadcn-btn shadcn-btn-primary text-sm">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        下载组织者手册
+      </a>
+    </div>`;
+  }
+  
+  // All clues
+  const allAreas = Object.keys(GAME_DATA.clueAreas);
+  if (allAreas.length > 0) {
+    html += `<div class="shadcn-card p-5"><h3 class="font-medium text-sm mb-3">🔍 全部线索预览</h3>
+      <div class="flex flex-wrap gap-2 mb-4">
+        <button class="shadcn-btn shadcn-btn-primary text-xs py-1 px-2" onclick="filterMaterialClues('all')">全部</button>
+        ${allAreas.map(a => `<button class="shadcn-btn shadcn-btn-outline text-xs py-1 px-2" onclick="filterMaterialClues('${a}')">${a}</button>`).join('')}
+      </div>
+      <div class="clue-grid" id="materialCluesGrid"></div>
+    </div>`;
+  }
+  
+  container.innerHTML = html;
+  filterMaterialClues('all');
+}
+
+// ===== NAVIGATION =====
+function showPage(page) {
+  if (page === 'materials' && !materialsUnlocked) {
+    document.getElementById('passwordModal').classList.remove('hidden');
+    document.getElementById('passwordInput').focus();
+    return;
+  }
+  document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+  document.getElementById('page-' + page).classList.remove('hidden');
+  document.querySelector('.sidebar-link[data-page="' + page + '"]').classList.add('active');
+  currentPage = page;
+}
+
+// ===== STAGE CONTROL =====
+function updateStageDisplay() {
+  const stageNames = GAME_DATA.flowStages.map(s => s.badge);
+  document.getElementById('currentStage').textContent = stageNames[currentStage] || '准备阶段';
+  document.querySelectorAll('.timeline-item').forEach((el, i) => {
+    el.classList.remove('active', 'completed');
+    if (i < currentStage) el.classList.add('completed');
+    else if (i === currentStage) el.classList.add('active');
+  });
+}
+
+function nextStage() {
+  if (currentStage < GAME_DATA.flowStages.length - 1) { currentStage++; updateStageDisplay(); }
+}
+function prevStage() {
+  if (currentStage > 0) { currentStage--; updateStageDisplay(); }
+}
+function showFlowDetail(stage) { currentStage = stage; updateStageDisplay(); }
+
+// ===== CLUES SYSTEM =====
+function setClueRound(round) {
+  currentClueRound = round;
+  currentClueArea = 'all';
+  const rounds = Object.keys(GAME_DATA.roundAreas).map(Number).sort((a,b)=>a-b);
+  document.querySelectorAll('#roundButtons button').forEach((btn, i) => {
+    btn.className = 'shadcn-btn ' + (rounds[i] === round ? 'shadcn-btn-primary' : 'shadcn-btn-secondary');
+  });
+  const info = GAME_DATA.roundInfo[round] || { total: '?', perPerson: '?', rule: '' };
+  document.getElementById('clueRoundInfo').innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+      <div><span class="text-slate-500">线索总数：</span><span class="font-medium">${info.total}条</span></div>
+      <div><span class="text-slate-500">每人次数：</span><span class="font-medium">${info.perPerson}次</span></div>
+      <div><span class="text-slate-500">特殊规则：</span><span class="font-medium">${info.rule}</span></div>
+    </div>`;
+  initCluesPage();
+}
+
+function initCluesPage() {
+  const areas = GAME_DATA.roundAreas[currentClueRound] || [];
+  const container = document.getElementById('areaFilters');
+  container.innerHTML = `
+    <button class="shadcn-btn ${currentClueArea === 'all' ? 'shadcn-btn-primary' : 'shadcn-btn-outline'} text-xs py-1 px-2" onclick="filterClues('all')">全部</button>
+    ${areas.map(a => `<button class="shadcn-btn ${currentClueArea === a ? 'shadcn-btn-primary' : 'shadcn-btn-outline'} text-xs py-1 px-2" onclick="filterClues('${a}')">${a}</button>`).join('')}
+  `;
+  renderClues();
+}
+
+function filterClues(area) { currentClueArea = area; initCluesPage(); }
+
+function renderClues() {
+  const grid = document.getElementById('cluesGrid');
+  const areas = currentClueArea === 'all' ? (GAME_DATA.roundAreas[currentClueRound] || []) : [currentClueArea];
+  let count = 0;
+  grid.innerHTML = areas.map(area => {
+    const files = GAME_DATA.clueAreas[area] || [];
+    return files.map(file => {
+      const clueId = `${area}/${file}`;
+      const isGiven = givenClues.has(clueId);
+      count++;
+      return `
+        <div class="relative group" onclick="openClueModal('${area}', '${file}')">
+          <img src="${GAME_DATA.clueBasePath}${file}" alt="${area}" class="clue-card w-full" loading="lazy">
+          <div class="absolute top-1 right-1">
+            <span class="shadcn-badge ${isGiven ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'} text-xs">${isGiven ? '✓' : count}</span>
+          </div>
+          <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 rounded-b-lg">
+            <span class="text-white text-xs font-medium">${area}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }).join('');
+  document.getElementById('clueCounter').textContent = givenClues.size;
+}
+
+function openClueModal(area, file) {
+  document.getElementById('clueModalTitle').textContent = area + ' - ' + file.replace(/\.[^.]+$/, '');
+  document.getElementById('clueModalImg').src = GAME_DATA.clueBasePath + file;
+  document.getElementById('clueModalDownload').href = GAME_DATA.clueBasePath + file;
+  document.getElementById('clueModal').classList.remove('hidden');
+  document.getElementById('clueModal').dataset.currentClue = area + '/' + file;
+}
+
+function closeClueModal() { document.getElementById('clueModal').classList.add('hidden'); }
+
+function markClueGiven() {
+  const clueId = document.getElementById('clueModal').dataset.currentClue;
+  if (clueId) { givenClues.add(clueId); renderClues(); closeClueModal(); }
+}
+
+function resetClues() { givenClues.clear(); renderClues(); }
+
+// ===== MATERIALS CLUES FILTER =====
+function filterMaterialClues(area) {
+  const grid = document.getElementById('materialCluesGrid');
+  if (!grid) return;
+  const areas = area === 'all' ? Object.keys(GAME_DATA.clueAreas) : [area];
+  grid.innerHTML = areas.map(a => {
+    const files = GAME_DATA.clueAreas[a] || [];
+    return files.map(file => `
+      <div class="relative group" onclick="showImageModal('${GAME_DATA.clueBasePath}${file}')">
+        <img src="${GAME_DATA.clueBasePath}${file}" alt="${a}" class="clue-card w-full" loading="lazy">
+        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 rounded-b-lg">
+          <span class="text-white text-xs font-medium">${a}</span>
+        </div>
+      </div>
+    `).join('');
+  }).join('');
+}
+
+// ===== PASSWORD =====
+function checkPassword() {
+  const input = document.getElementById('passwordInput').value;
+  if (input === GAME_DATA.password) {
+    materialsUnlocked = true;
+    document.getElementById('passwordModal').classList.add('hidden');
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('passwordError').classList.add('hidden');
+    showPage('materials');
+  } else {
+    document.getElementById('passwordError').classList.remove('hidden');
+  }
+}
+
+// ===== IMAGE MODAL =====
+function showImageModal(src) { document.getElementById('imageModalImg').src = src; document.getElementById('imageModal').classList.remove('hidden'); }
+function closeImageModal() { document.getElementById('imageModal').classList.add('hidden'); }
+
+// ===== TIMER =====
+function startTimer(minutes) {
+  stopTimer();
+  timerSeconds = minutes * 60;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timerSeconds--;
+    updateTimerDisplay();
+    if (timerSeconds <= 0) { stopTimer(); alert('时间到！'); }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(Math.max(0, timerSeconds) / 60).toString().padStart(2, '0');
+  const s = (Math.max(0, timerSeconds) % 60).toString().padStart(2, '0');
+  document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeClueModal(); closeImageModal(); }
+});
+</script>
+</body>
+</html>
